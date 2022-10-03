@@ -1,0 +1,255 @@
+---
+title: "Case_1"
+author: "Trym Willoch Schibbye"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: inline
+---
+
+***Oppgavene er besvart der de befinner seg i casen.***
+
+BNP Tabell
+
+```{r}
+library(PxWebApiData)
+library(tidyverse)
+```
+
+```{r}
+variabler <- ApiData("http://data.ssb.no/api/v0/no/table/09842", returnMetaFrames = TRUE)
+names(variabler)
+```
+
+Hvilke verdier variablene tar med i spørringen.
+
+```{r}
+verdier <- ApiData("https://data.ssb.no/api/v0/no/table/09842/", returnMetaData = TRUE)
+verdier
+```
+
+Spørring
+
+```{r}
+tabell <- ApiData("https://data.ssb.no/api/v0/no/table/09842/",
+                Tid = paste(1970:2019),
+                ContentsCode = "BNP")
+```
+
+Første listen
+
+```{r}
+head(tabell[[1]])
+```
+
+Andre listen
+
+```{r}
+head(tabell[[2]])
+```
+
+Første listen som objekt BNP
+
+```{r}
+bnp <- tabell[[1]]
+str(bnp)
+```
+
+Endre år til numerisk og navn på BNP fra value til BNP
+
+```{r}
+bnp <- bnp %>%
+  mutate(år=parse_number(år)) %>% 
+  rename(BNP=value)
+str(bnp)
+```
+
+```{r}
+head(bnp)
+```
+
+Enkelt "default" plot
+
+```{r}
+bnp %>%
+  ggplot(aes(x=år, y=BNP)) +
+  geom_line()
+```
+
+Forbedre fremstillingen
+
+```{r}
+bnp %>%
+  ggplot(aes(x=år, y=BNP)) +
+  geom_line(color="dark blue") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title="Bruttonasjonalprodukt - BNP \n (kr per innbygger)",
+       x =" ",
+       y = "kr per innbygger") +
+  theme_bw()
+```
+
+***Oppgave 1:***
+
+***Drøft hvilke endringer som er gjort når du sammenligner de to bruttonasjonalprodukt figurene.***
+
+Svar:
+
+Den enkle "default" figuren har kun definert år og BNP på x og y aksen, mens den andre figuren er mer forseggjort. Den inneholder overskrift med informasjon om hva grafen inneholder(BNP), og hvilken hvilken verdi (kroner per inbygger).
+
+X-aksen med årstall har blitt stilnet til å ikke si år, da det vil være intuitivt at x-aksen definerer år.
+
+Y-aksen med BNP er blitt endret til kr per innbygger, antallet kroner er blitt endret til mer leselige verdier, og grafens linje er endret til mørk blå.
+
+Det er ikke mye som skal til for at en graf skal bli presentabel.
+
+***Oppgave 2:***
+
+***Lag en ny figur der du denne gangen kun benytter BNP tall fra og med 1990.***
+
+Svar:
+
+```{r}
+bnp %>%
+  filter(år >=1990) %>%
+  ggplot(aes(x=år, y=BNP)) +
+  geom_line(color="dark blue") +
+  scale_y_continuous(labels = scales::comma) +
+  labs(title="Bruttonasjonalprodukt - BNP \n (kr per innbygger)",
+       x =" ",
+       y = "kr per innbygger") +
+  theme_bw()
+```
+
+Endringer i BNP
+
+```{r}
+bnp %>% 
+  mutate(BNP_L1=lag(BNP)) %>% 
+  head()
+```
+
+Differansen i i BNP
+
+```{r}
+bnp %>% 
+  mutate(BNP_L1=lag(BNP),
+         dBNP=BNP-BNP_L1) %>% 
+  head()
+```
+
+Differansen direkte
+
+```{r}
+bnp %>% 
+  mutate(dBNP=BNP-lag(BNP)) %>% 
+  head()
+```
+
+Prosentvis endring
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(BNP - lag(BNP))/lag(BNP)) %>%
+  head()
+```
+
+Enkel figur av den prosentvise endringen
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(BNP - lag(BNP))/lag(BNP)) %>%
+  ggplot(aes(x=år, y=prosBNP)) +
+  geom_line()
+```
+
+Forbedret og uten feilmelding
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(BNP - lag(BNP))/lag(BNP)) %>%
+  filter(år >=1971) %>% 
+  ggplot(aes(x=år, y=prosBNP)) +
+  geom_line(color="dark red") +
+  labs(title="Prosentvis endring i bruttonasjonalprodukt - BNP",
+       x =" ",
+       y = "prosent") +
+  theme_bw()
+```
+
+***Oppgave 3:***
+
+***Drøft hvilke endringer som er gjort når du sammenligner de to figurene med prosentvis endring i bruttonasjonalprodukt.***
+
+Svar:
+
+Årstallet er filtrert til å gå fra 1971, for å få vekk feilmeldingen om å ikke kunne ha prosentendring på ett foregående år som ikke eksisterer.
+
+Graflinjen er endret til mørk rød
+
+Grafen har får en beskrivende tittel, fjernet "år" fra x-aksen og omdøpt y-aksen til prosent.
+
+Igjen er det da ikke mye som skal til før en graf blir mer presentabel.
+
+***Oppgave 4:***
+
+***Lag en ny figur der du denne gangen benytter formelen for det logaritmiske differensialet for å beregne prosentvis endring i bruttonasjonalprodukt.***
+
+Svar:
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(log(BNP) - lag(log(BNP)))/lag(log(BNP))) %>%
+  filter(år >=1971) %>% 
+  ggplot(aes(x=år, y=prosBNP)) +
+  geom_line(color="dark red") +
+  labs(title="Prosentvis endring i bruttonasjonalprodukt - BNP",
+       x =" ",
+       y = "prosent") +
+  theme_bw()
+```
+
+***Oppgave 5:***
+
+***Hvilket år har vi den største årlige nedgangen, og hvorfor?***
+
+Svar:
+
+Vi kan se at vi hadde den største årlige nedgangen i 2009, dette etter finanskrisen i 2008, styringsrenta hadde vært nesten 6%, døgnlånsrenten var over 6%, og økonomien måtte stimuleres igjen med nedgang til en styringsrente på under 2% iløpet av 2009.
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(BNP - lag(BNP))/lag(BNP)) %>%
+  filter(år >=1971) %>% 
+  arrange(prosBNP)
+```
+
+Så får vi nå se da, hvor høyt renta må denne gangen...
+
+***Oppgave 6:***
+
+***Vi kan også gjøre en litt mer avansert analyse ved å beregne gjennomsnittet av de prosentvise endringen i bruttonasjonalprodukt per tiår. Drøft det som er gjort i koden, og kommenter det du ser i figuren.***
+
+Svar:
+
+```{r}
+bnp %>%
+  mutate(prosBNP = 100*(BNP - lag(BNP))/lag(BNP)) %>%
+  filter(år >=1971) %>%
+  mutate(tiår = år - år %% 10) %>%
+  group_by(tiår) %>% 
+  mutate(snittBNP=mean(prosBNP)) %>%
+  ggplot(aes(x=år)) +
+  geom_line(aes(y=prosBNP), color="dark red") +
+  geom_step(aes(y=snittBNP), color="steelblue", linetype="dashed") +
+  labs(title="Prosentvis endring i bruttonasjonalprodukt - BNP \n (gjennomsnitt per tiår)",
+       x=" ",
+       y="prosent") +
+  theme_bw()
+```
+
+Vi ser at det nå er 2 linjer, fremdeles mørk rød for alle årene enkeltvis, men også en stripete "stål blå" linje for det tiårige gjennomsnittet.
+
+Det er lagt til en funksjon for å regne ut snittet av tiåret.
+
+Vi ser av figuren at en synkende trend i prosentvis endring blir mye tydeligere å se.
